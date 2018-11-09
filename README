@@ -1,0 +1,44 @@
+Joseph Torres
+996202666
+jdtorres@ucdavis.edu
+
+Instructions:
+ 
+Simply type "make" to compile. To run, enter "p2" followed by the name of the input file containing the polyhedron data you would like
+to specify. The values making up the vertices in this file may be positive or negative. If any value exceeds an absolute value of 500.0,
+the violating polyhedron portion will be clipped in its rendering. These polyhedrons will be rendered as wireframes and projected 
+orthographically into three views: XY/top/elevation, XZ/front/plan, and YZ/side/section. 
+
+Once the polyhedrons have been rendered, you may right click anywhere on the primary viewing window (but outside any of the three projection
+subwindows) and a menu will appear. In this menu you may select to translate, scale, rotate, or display the vertices of any of the poyhedrons 
+pictured. 
+
+
+To translate: 
+When prompted, type the desired x, y, and z world coordinate values of translation, in that order, and hit enter.
+
+To scale: 
+When prompted, type the magnitude of the scaling and hit enter. 
+
+To rotate: 
+When prompted, type the x1, y1, z1, x2, y2, and z2 values representing the line around which the desired polyhedron will be rotated, followed by the 
+angle of rotation in radians. A positive angle will rotate the selected polygon counter-clockwise from the perspective of facing in the negative
+direction down the axis of rotation. 
+
+To view a polyhedron's vertices:
+No actions are required beyond selecting your polyhedron of choice.   
+
+
+The following algorithm/code line references indicate that algorithm's implemenation location as found in main.cpp:
+
+XY Projection.....................................................39-62
+XZ Projection.....................................................63-109
+YZ Projection.....................................................87-110
+Vertex Dump.......................................................130-144
+Translation.......................................................145-179
+Scaling...........................................................180-232
+Rotation..........................................................233-328
+
+Everything implemented to carry out the assignment specifications should be fully functional. 
+
+ 
