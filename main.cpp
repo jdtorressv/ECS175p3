@@ -14,16 +14,19 @@ using namespace std;
 #define NORM 500.0 
 
 
-//Classes*********************************** 
+/*****************************************************************************/
+/* Classes                            		                             */
+/*****************************************************************************/
+ 
 class Vertex {
 	public:
 		double x;   
 		double y;  
 		double z; 
-	        double NormX;
-		double NormY; 
-		double NormZ;
-		Vertex(double x, double y, double z); 	
+	        double normX;
+		double normY; 
+		double normZ;
+		Vertex(double x, double y, double z, double normX, double normY, double normZ); 	
 };
 
 class Triangle {
@@ -34,34 +37,43 @@ class Triangle {
 		Triangle(int vertexA, int vertexB, int vertexC); 
 };
 
+class Normal {
+        public:
+                int VID;
+                double xVal;
+                double yVal;
+                double zVal;
+		Normal(int VID, double xVal, double yVal, double zVal); 
+};
+
 class Polyhedron {
 	public: 
 		vector<Vertex> vArr; 
 		vector<Triangle> triArr; 
+		vector<Normal> normArr; 
 };	
 
-class Normal {
-	public: 
-		int VID; 
-		double xVal;
-		double yVal;
-		double zval; 
-};
+/*****************************************************************************/
+/* Globals                                                                   */
+/*****************************************************************************/
 
-//Global Variables********************************
 int windowID, windowXY, windowXZ, windowYZ;
 char* fileName;
-vector<Normal> normalArr;
 vector<Polyhedron> polyArr; 
 
-//Functions****************************************
+/*****************************************************************************/
+/* Function Definitions                                                      */
+/*****************************************************************************/
 
 //Constructors
-Vertex::Vertex(double x, double y, double z)
+Vertex::Vertex(double x, double y, double z, double normX, double normY, double normZ)
 {
 	this->x = x; 
 	this->y = y;
 	this->z = z; 
+	this->normX = normX;
+	this->normY = normY; 
+	this->normZ = normZ; 
 }
 
 Triangle::Triangle(int vertexA, int vertexB, int vertexC)
@@ -69,6 +81,114 @@ Triangle::Triangle(int vertexA, int vertexB, int vertexC)
 	this->vertexA = vertexA;
 	this->vertexB = vertexB; 
 	this->vertexC = vertexC; 
+}
+Normal::Normal(int VID, double xVal, double yVal, double zVal)
+{
+	this->VID = VID;
+	this->xVal = xVal; 
+	this->yVal = yVal;
+	this->zVal = zVal; 
+}
+//Fill appropriate classes with input file specs
+void populatePolyhedronInfo(vector<double> v)
+{
+        auto vpoint = v.begin();
+
+        int polyTotal = (int)*(vpoint);
+
+        for (int i = 0; i < polyTotal; i++) {
+                Polyhedron poly;
+                polyArr.push_back(poly);
+                int vertices = (int)*(++vpoint);
+
+                for (int j = 0; j < vertices; j++) {
+                        double x = *(++vpoint)/NORM;
+                        double y = *(++vpoint)/NORM;
+                        double z = *(++vpoint)/NORM;
+                        Vertex vertex(x, y, z, 0, 0, 0);
+                        polyArr.at(i).vArr.push_back(vertex);
+                }
+
+                int numTri = (int)*(++vpoint);
+
+                for (int k = 0; k < numTri; k++) {
+                        int first = (int)*(++vpoint);
+                        int second = (int)*(++vpoint);
+                        int third = (int)*(++vpoint);
+                        Triangle triangle(first, second, third);
+                        polyArr.at(i).triArr.push_back(triangle);
+                }
+        }
+}
+void shiftOver(int* first, int* second, int* third) 
+{
+	int temp = *first; 
+	*first = *second;
+        *second = *third; 
+	*third = temp; 	
+
+}
+void crossProduct(Polyhedron currPoly, int A, int B, int C)
+{
+			double Ux = currPoly.vArr.at(B).x - currPoly.vArr.at(A).x;
+                        double Uy = currPoly.vArr.at(B).y - currPoly.vArr.at(A).y;
+                        double Uz = currPoly.vArr.at(B).z - currPoly.vArr.at(A).z;
+
+                        double Vx = currPoly.vArr.at(C).x - currPoly.vArr.at(B).x;
+                        double Vy = currPoly.vArr.at(C).y - currPoly.vArr.at(B).y;
+                        double Vz = currPoly.vArr.at(C).z - currPoly.vArr.at(B).z;
+
+                        Vertex U(Ux, Uy, Uz, 0, 0, 0);
+                        Vertex V(Vx, Vy, Vz, 0, 0, 0);
+			
+			double Nx = U.y*V.z - U.z*V.y;
+			double Ny = U.z*V.x - U.x*V.z;
+			double Nz = U.x*V.y - U.y*V.x;
+			double mag = sqrt(pow(Nx, 2) + pow(Ny, 2) + pow(Nz, 2)); 
+
+                        Normal surfNormal(B, Nx/mag, Ny/mag, Nz/mag);
+                        currPoly.normArr.push_back(surfNormal);
+
+}
+void calculateNormals() 
+{
+	for (int i = 0; i < polyArr.size(); i++) {
+		Polyhedron currPoly = polyArr.at(i);
+		for (int j = 0; j < currPoly.triArr.size(); j++) {
+			Triangle currTri = currPoly.triArr.at(j); 
+
+			int A = currTri.vertexA;
+			int B = currTri.vertexB; 
+			int C = currTri.vertexC;
+			
+			crossProduct(currPoly, A, B, C);  
+
+			shiftOver(&A, &B, &C); 
+			crossProduct(currPoly, A, B, C); 
+			
+			shiftOver(&A, &B, &C); 
+			crossProduct(currPoly, A, B, B);
+		}
+	}	
+}
+void setNormals()
+{
+        for (int i = 0; i < polyArr.size(); i++) {
+                for (int j = 0; j < polyArr.at(i).vArr.size(); j++) {
+                        int count = 0;
+                        for (int k = 0; k < polyArr.at(i).normArr.size(); k++) {
+                                if (j == polyArr.at(i).normArr.at(k).VID) {
+                                        polyArr.at(i).vArr.at(j).normX += polyArr.at(i).normArr.at(k).xVal;
+                                        polyArr.at(i).vArr.at(j).normY += polyArr.at(i).normArr.at(k).yVal;
+                                        polyArr.at(i).vArr.at(j).normY += polyArr.at(i).normArr.at(k).zVal;
+                                        count++;
+                                }
+                        }
+                        polyArr.at(i).vArr.at(j).normX /= count; 
+                        polyArr.at(i).vArr.at(j).normY /= count;
+                        polyArr.at(i).vArr.at(j).normZ /= count; 
+                }
+        }
 }
 //Inline function for mainMenu delegates all functionality to sub menus 
 inline void mainMenu(int pid) {;}
@@ -244,6 +364,9 @@ void rotateMenu(int pid)
 	;
 
 }
+/*****************************************************************************/
+/* Main                                                                      */
+/*****************************************************************************/
 
 int main(int argc, char** argv) 
 {
@@ -275,40 +398,12 @@ int main(int argc, char** argv)
         while (file >> num)
                 v.push_back(num); //Initial vector for all polygons
         file.close();
-
-	auto vpoint = v.begin(); 
 	
-	int polyTotal = (int)*(vpoint);
+	populatePolyhedronInfo(v); 
+
+	calculateNormals(); 
 	
-	for (int i = 0; i < polyTotal; i++) {
-		Polyhedron poly; 
-		polyArr.push_back(poly);  
-                int vertices = (int)*(++vpoint);
-                //vArr.at(i).push_back(vertices);
-
-                for (int j = 0; j < vertices; j++) {
-			double x = *(++vpoint)/NORM; 
-			double y = *(++vpoint)/NORM;
-			double z = *(++vpoint)/NORM; 
-			Vertex vertex(x, y, z); 
-			polyArr.at(i).vArr.push_back(vertex); 
-                        /*vArr.at(i).push_back(*(++vpoint) / NORM);
-                        vArr.at(i).push_back(*(++vpoint) / NORM);
-			vArr.at(i).push_back(*(++vpoint) / NORM);*/ 
-                }
-
-		int numTri = (int)*(++vpoint); 
-		//lArr.at(i).push_back(lines);
-	       	for (int k = 0; k < numTri; k++) {
-			int first = (int)*(++vpoint); 
-			int second = (int)*(++vpoint); 
-			int third = (int)*(++vpoint); 
-			Triangle triangle(first, second, third);
-			polyArr.at(i).triArr.push_back(triangle); 
-			//lArr.at(i).push_back(*(++vpoint));
-			//lArr.at(i).push_back(*(++vpoint));
-		}
-        }
+	setNormals(); 
 
 	//XY
 	windowXY = glutCreateSubWindow(windowID, 25, 50, 320, 320);
