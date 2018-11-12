@@ -1,8 +1,8 @@
-all: p2
+all: p3
 
-p2: main.o
-	g++ main.o -o p2 -lglut -lGL 
+p3: main.o
+	g++ main.o -o p3 -lglut -lGL 
 main.o: main.cpp  
 	g++ -c main.cpp -lglut -lGL 
 clean:
-	rm -rf *o p2
+	rm -rf *o p3
