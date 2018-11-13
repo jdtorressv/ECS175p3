@@ -204,6 +204,15 @@ void setNormals()
                 }
         }
 }
+float ComputeIP(CoeffSet coeff, float Ia, float Il, float Vmag, float K, Vertex vecL, float Nx, float Ny, float Nz, Vertex vecR, Vertex vecV, int n)
+{
+	float inten = coeff.ka*Ia + (Il/(Vmag + K))*(coeff.kd*(vecL.x*Nx + vecL.y*Ny + vecL.z*Nz) + coeff.ks*pow((vecR.x*vecV.x + vecR.y*vecV.y + vecR.z*vecV.z), n));
+	if (inten < 0)
+		return 0;
+	else
+		return inten; 
+
+}
 void setIntensities(Vertex lightPt, Vertex viewPt, CoeffSet redC, CoeffSet greenC, CoeffSet blueC, float K, float Ia, float Il, int n)
 {
 	for (int i = 0; i < polyArr.size(); i++) {
@@ -231,11 +240,11 @@ void setIntensities(Vertex lightPt, Vertex viewPt, CoeffSet redC, CoeffSet green
 			float NdotL = Nx*vecL.x + Ny*vecL.y + Nz*vecL.z; 
 			Vertex vecR(2*NdotL*Nx - vecL.x, 2*NdotL*Ny - vecL.y, 2*NdotL*Nz - vecL.z);
 
-			redC.ka*Ia + (Il/(Vmag + K))*(redC.kd*(vecL.x*Nx + vecL.y*Ny + vecL.z*Nz) + redC.ks*pow((vecR.x*vecV.x + vecR.y*vecV.y + vecR.z*vecV.z), n));	
-
-			polyArr.at(i).vArr.at(j).red = redC.ka*Ia + (Il/(Vmag + K))*(redC.kd*(vecL.x*Nx + vecL.y*Ny + vecL.z*Nz) + redC.ks*pow((vecR.x*vecV.x + vecR.y*vecV.y + vecR.z*vecV.z), n)); 
-                        polyArr.at(i).vArr.at(j).green = greenC.ka*Ia + (Il/(Vmag + K))*(greenC.kd*(vecL.x*Nx + vecL.y*Ny + vecL.z*Nz) + greenC.ks*pow((vecR.x*vecV.x + vecR.y*vecV.y + vecR.z*vecV.z), n));
-                        polyArr.at(i).vArr.at(j).blue = blueC.ka*Ia + (Il/(Vmag + K))*(blueC.kd*(vecL.x*Nx + vecL.y*Ny + vecL.z*Nz) + blueC.ks*pow((vecR.x*vecV.x + vecR.y*vecV.y + vecR.z*vecV.z), n));
+			polyArr.at(i).vArr.at(j).red = ComputeIP(redC, Ia, Il, Vmag, K, vecL, Nx, Ny, Nz, vecR, vecV, n); 
+		        polyArr.at(i).vArr.at(j).green = ComputeIP(greenC, Ia, Il, Vmag, K, vecL, Nx, Ny, Nz, vecR, vecV, n);
+			polyArr.at(i).vArr.at(j).blue = ComputeIP(blueC, Ia, Il, Vmag, K, vecL, Nx, Ny, Nz, vecR, vecV, n);
+			
+			cout << "Polyhedron #" << i << ", vertex #" << j << ": (" << polyArr.at(i).vArr.at(j).red << ", " << polyArr.at(i).vArr.at(j).green << ", " << polyArr.at(i).vArr.at(j).blue << ")\n"; 	
 		}
 	}				
 }
@@ -456,8 +465,6 @@ int main(int argc, char** argv)
 	float Il = atof(argv[18]); 
 	int n = atoi(argv[19]); 
 
-	setIntensities(lightPt, viewPt, redC, greenC, blueC, K, Ia, Il, n); 
-
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -485,6 +492,7 @@ int main(int argc, char** argv)
 	populatePolyhedronInfo(v); 
 	calculateNormals(); 
 	setNormals(); 
+	setIntensities(lightPt, viewPt, redC, greenC, blueC, K, Ia, Il, n); // Phong 
 
 	
 	//XY
