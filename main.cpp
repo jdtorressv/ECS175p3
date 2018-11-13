@@ -25,6 +25,9 @@ class Vertex {
 	        double normX;
 		double normY; 
 		double normZ;
+		double red;
+		double green;
+		double blue; 
 		Vertex(double x, double y, double z);
 };
 
@@ -200,6 +203,41 @@ void setNormals()
                         polyArr.at(i).vArr.at(j).normZ /= (double)count; 
                 }
         }
+}
+void setIntensities(Vertex lightPt, Vertex viewPt, CoeffSet redC, CoeffSet greenC, CoeffSet blueC, float K, float Ia, float Il, int n)
+{
+	for (int i = 0; i < polyArr.size(); i++) {
+		for (int j = 0; j < polyArr.at(i).vArr.size(); j++) {
+			float x = polyArr.at(i).vArr.at(j).x;
+			float y = polyArr.at(i).vArr.at(j).y;
+			float z = polyArr.at(i).vArr.at(j).z; 
+			
+			//Calculate vectors: reflection r, light l, and viewing v 
+			float Lx = x - lightPt.x; 
+			float Ly = y - lightPt.y; 
+			float Lz = z - lightPt.z; 
+			float Lmag = sqrt(pow(Lx, 2) + pow(Ly, 2) + pow(Lz, 2)); 
+			Vertex vecL(Lx/Lmag, Ly/Lmag, Lz/Lmag); 
+
+			float Vx = viewPt.x - lightPt.x;
+			float Vy = viewPt.y - lightPt.y;
+			float Vz = viewPt.z - lightPt.z; 
+			float Vmag = sqrt(pow(Vx, 2) + pow(Vy, 2) + pow(Vz, 2));
+			Vertex vecV(Vx/Vmag, Vy/Vmag, Vz/Vmag); 
+
+			float Nx = polyArr.at(i).vArr.at(j).normX; 
+                        float Ny = polyArr.at(i).vArr.at(j).normY;
+                        float Nz = polyArr.at(i).vArr.at(j).normZ;
+			float NdotL = Nx*vecL.x + Ny*vecL.y + Nz*vecL.z; 
+			Vertex vecR(2*NdotL*Nx - vecL.x, 2*NdotL*Ny - vecL.y, 2*NdotL*Nz - vecL.z);
+
+			redC.ka*Ia + (Il/(Vmag + K))*(redC.kd*(vecL.x*Nx + vecL.y*Ny + vecL.z*Nz) + redC.ks*pow((vecR.x*vecV.x + vecR.y*vecV.y + vecR.z*vecV.z), n));	
+
+			polyArr.at(i).vArr.at(j).red = redC.ka*Ia + (Il/(Vmag + K))*(redC.kd*(vecL.x*Nx + vecL.y*Ny + vecL.z*Nz) + redC.ks*pow((vecR.x*vecV.x + vecR.y*vecV.y + vecR.z*vecV.z), n)); 
+                        polyArr.at(i).vArr.at(j).green = greenC.ka*Ia + (Il/(Vmag + K))*(greenC.kd*(vecL.x*Nx + vecL.y*Ny + vecL.z*Nz) + greenC.ks*pow((vecR.x*vecV.x + vecR.y*vecV.y + vecR.z*vecV.z), n));
+                        polyArr.at(i).vArr.at(j).blue = blueC.ka*Ia + (Il/(Vmag + K))*(blueC.kd*(vecL.x*Nx + vecL.y*Ny + vecL.z*Nz) + blueC.ks*pow((vecR.x*vecV.x + vecR.y*vecV.y + vecR.z*vecV.z), n));
+		}
+	}				
 }
 inline int roundOff(const double a) {return (int)(a+0.5);}
 void makePix(int x, int y, int pid)
@@ -408,17 +446,17 @@ int main(int argc, char** argv)
 		exit(ERROR); 
 	}	
 
-	Vertex lightSrc(atof(argv[1])/NORM, atof(argv[2])/NORM, atof(argv[3])/NORM);
-	Vertex viewPoint(atof(argv[4])/NORM, atof(argv[5])/NORM, atof(argv[6])/NORM);
-	CoeffSet red(atof(argv[7]), atof(argv[8]), atof(argv[9]));
-        CoeffSet green(atof(argv[10]), atof(argv[11]), atof(argv[12]));
-	CoeffSet blue(atof(argv[13]), atof(argv[14]), atof(argv[15]));
+	Vertex lightPt(atof(argv[1])/NORM, atof(argv[2])/NORM, atof(argv[3])/NORM);
+	Vertex viewPt(atof(argv[4])/NORM, atof(argv[5])/NORM, atof(argv[6])/NORM);
+	CoeffSet redC(atof(argv[7]), atof(argv[8]), atof(argv[9]));
+        CoeffSet greenC(atof(argv[10]), atof(argv[11]), atof(argv[12]));
+	CoeffSet blueC(atof(argv[13]), atof(argv[14]), atof(argv[15]));
 	float K = atof(argv[16])/NORM; 
 	float Ia = atof(argv[17]); 
 	float Il = atof(argv[18]); 
 	int n = atoi(argv[19]); 
 
-
+	setIntensities(lightPt, viewPt, redC, greenC, blueC, K, Ia, Il, n); 
 
 
 	glutInit(&argc, argv);
