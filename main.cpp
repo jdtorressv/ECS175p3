@@ -11,8 +11,7 @@
 using namespace std;
 
 #define ERROR 1 
-#define NORM 500.0 
-
+#define NORM 600.0 
 
 /*****************************************************************************/
 /* Classes                            		                             */
@@ -26,7 +25,7 @@ class Vertex {
 	        double normX;
 		double normY; 
 		double normZ;
-		Vertex(double x, double y, double z, double normX, double normY, double normZ); 	
+		Vertex(double x, double y, double z);
 };
 
 class Triangle {
@@ -52,28 +51,33 @@ class Polyhedron {
 		vector<Triangle> triArr; 
 		vector<Normal> normArr; 
 };	
+class CoeffSet {
+	public:
+		float ka;
+		float kd; 
+		float ks;
+	        CoeffSet(float ka, float kd, float ks); 	
+};
 
 /*****************************************************************************/
 /* Globals                                                                   */
 /*****************************************************************************/
 
 int windowID, windowXY, windowXZ, windowYZ;
-char* fileName;
 vector<Polyhedron> polyArr; 
+float *PixelBufferXY, *PixelBufferXZ, *PixelBufferYZ;
+float *PolygonBufferXY, *PolygonBufferXZ, *PolygonBufferYZ;
 
 /*****************************************************************************/
 /* Function Definitions                                                      */
 /*****************************************************************************/
 
 //Constructors
-Vertex::Vertex(double x, double y, double z, double normX, double normY, double normZ)
+Vertex::Vertex(double x, double y, double z)
 {
 	this->x = x; 
 	this->y = y;
 	this->z = z; 
-	this->normX = normX;
-	this->normY = normY; 
-	this->normZ = normZ; 
 }
 
 Triangle::Triangle(int vertexA, int vertexB, int vertexC)
@@ -88,6 +92,12 @@ Normal::Normal(int VID, double xVal, double yVal, double zVal)
 	this->xVal = xVal; 
 	this->yVal = yVal;
 	this->zVal = zVal; 
+}
+CoeffSet::CoeffSet(float ka, float kd, float ks)
+{
+	this->ka = ka; 
+	this->kd = kd; 
+	this->ks = ks; 
 }
 //Fill appropriate classes with input file specs
 void populatePolyhedronInfo(vector<double> v)
@@ -105,7 +115,7 @@ void populatePolyhedronInfo(vector<double> v)
                         double x = *(++vpoint)/NORM;
                         double y = *(++vpoint)/NORM;
                         double z = *(++vpoint)/NORM;
-                        Vertex vertex(x, y, z, 0, 0, 0);
+                        Vertex vertex(x, y, z);
                         polyArr.at(i).vArr.push_back(vertex);
                 }
 
@@ -120,26 +130,26 @@ void populatePolyhedronInfo(vector<double> v)
                 }
         }
 }
-void shiftOver(int* first, int* second, int* third) 
+void swap(int &first, int &second, int &third) 
 {
-	int temp = *first; 
-	*first = *second;
-        *second = *third; 
-	*third = temp; 	
+	int temp = first; 
+	first = second;
+        second = third; 
+	third = temp; 	
 
 }
-void crossProduct(Polyhedron currPoly, int A, int B, int C)
+void crossProduct(int index, int A, int B, int C)
 {
-			double Ux = currPoly.vArr.at(B).x - currPoly.vArr.at(A).x;
-                        double Uy = currPoly.vArr.at(B).y - currPoly.vArr.at(A).y;
-                        double Uz = currPoly.vArr.at(B).z - currPoly.vArr.at(A).z;
+			double Ux = polyArr.at(index).vArr.at(B).x - polyArr.at(index).vArr.at(A).x;
+                        double Uy = polyArr.at(index).vArr.at(B).y - polyArr.at(index).vArr.at(A).y;
+                        double Uz = polyArr.at(index).vArr.at(B).z - polyArr.at(index).vArr.at(A).z;
 
-                        double Vx = currPoly.vArr.at(C).x - currPoly.vArr.at(B).x;
-                        double Vy = currPoly.vArr.at(C).y - currPoly.vArr.at(B).y;
-                        double Vz = currPoly.vArr.at(C).z - currPoly.vArr.at(B).z;
+                        double Vx = polyArr.at(index).vArr.at(C).x - polyArr.at(index).vArr.at(B).x;
+                        double Vy = polyArr.at(index).vArr.at(C).y - polyArr.at(index).vArr.at(B).y;
+                        double Vz = polyArr.at(index).vArr.at(C).z - polyArr.at(index).vArr.at(B).z;
 
-                        Vertex U(Ux, Uy, Uz, 0, 0, 0);
-                        Vertex V(Vx, Vy, Vz, 0, 0, 0);
+                        Vertex U(Ux, Uy, Uz);
+                        Vertex V(Vx, Vy, Vz);
 			
 			double Nx = U.y*V.z - U.z*V.y;
 			double Ny = U.z*V.x - U.x*V.z;
@@ -147,27 +157,28 @@ void crossProduct(Polyhedron currPoly, int A, int B, int C)
 			double mag = sqrt(pow(Nx, 2) + pow(Ny, 2) + pow(Nz, 2)); 
 
                         Normal surfNormal(B, Nx/mag, Ny/mag, Nz/mag);
-                        currPoly.normArr.push_back(surfNormal);
+                        polyArr.at(index).normArr.push_back(surfNormal);
 
 }
 void calculateNormals() 
 {
 	for (int i = 0; i < polyArr.size(); i++) {
-		Polyhedron currPoly = polyArr.at(i);
-		for (int j = 0; j < currPoly.triArr.size(); j++) {
-			Triangle currTri = currPoly.triArr.at(j); 
+		for (int j = 0; j < polyArr.at(i).triArr.size(); j++) {
+			Triangle currTri = polyArr.at(i).triArr.at(j); 
 
 			int A = currTri.vertexA;
 			int B = currTri.vertexB; 
 			int C = currTri.vertexC;
 			
-			crossProduct(currPoly, A, B, C);  
+			crossProduct(i, A, B, C);  
 
-			shiftOver(&A, &B, &C); 
-			crossProduct(currPoly, A, B, C); 
-			
-			shiftOver(&A, &B, &C); 
-			crossProduct(currPoly, A, B, B);
+			swap(A, B, C);
+
+			crossProduct(i, A, B, C); 
+
+			swap(A, B, C);
+	
+			crossProduct(i, A, B, C);
 		}
 	}	
 }
@@ -184,12 +195,34 @@ void setNormals()
                                         count++;
                                 }
                         }
-                        polyArr.at(i).vArr.at(j).normX /= count; 
-                        polyArr.at(i).vArr.at(j).normY /= count;
-                        polyArr.at(i).vArr.at(j).normZ /= count; 
+                        polyArr.at(i).vArr.at(j).normX /= (double)count; 
+                        polyArr.at(i).vArr.at(j).normY /= (double)count;
+                        polyArr.at(i).vArr.at(j).normZ /= (double)count; 
                 }
         }
 }
+inline int roundOff(const double a) {return (int)(a+0.5);}
+void makePix(int x, int y, int pid)
+{
+
+}
+void copyBuffer(int pid)
+{
+
+}
+void clearPixelBuffer()
+{
+
+}
+void clearPolygonBuffer(int pid)
+{
+
+}
+void lineDrawRaster()
+{
+
+}
+
 //Inline function for mainMenu delegates all functionality to sub menus 
 inline void mainMenu(int pid) {;}
 
@@ -204,7 +237,7 @@ void init()
         glMatrixMode(GL_PROJECTION);
 }
 
-//Draws the lines as specified by the lines via vertex pairs in the input file; XY: All Z values are ignored 
+//XY: All Z values are ignored 
 void drawSceneXY()
 {
 	glClear(GL_COLOR_BUFFER_BIT); 
@@ -242,7 +275,7 @@ void drawSceneXY()
 	glEnd(); 
 	glFlush(); 
 }
-//Draws the lines as specified by the lines via vertex pairs in the input file; XZ: All Y values are ignored
+//XZ: All Y values are ignored
 void drawSceneXZ()
 {
         glClear(GL_COLOR_BUFFER_BIT);
@@ -281,7 +314,7 @@ void drawSceneXZ()
 	glEnd(); 
 	glFlush(); 
 }
-//Draws the lines as specified by the lines via vertex pairs in the input file; XZ: All X values are ignored
+//XZ: All X values are ignored
 void drawSceneYZ()
 {
         glClear(GL_COLOR_BUFFER_BIT);
@@ -370,10 +403,23 @@ void rotateMenu(int pid)
 
 int main(int argc, char** argv) 
 {
-	if (argc != 2) {
-		cout << "Usage: p1 <input_file_name> \n";
+	if (argc != 20) {
+		cout << "Usage: p3 <Px Py Pz Fx Fy Fz kaR kdR ksR kaG kdG ksG kaB kdB ksB K Ia Il n> \n";
 		exit(ERROR); 
 	}	
+
+	Vertex lightSrc(atof(argv[1])/NORM, atof(argv[2])/NORM, atof(argv[3])/NORM);
+	Vertex viewPoint(atof(argv[4])/NORM, atof(argv[5])/NORM, atof(argv[6])/NORM);
+	CoeffSet red(atof(argv[7]), atof(argv[8]), atof(argv[9]));
+        CoeffSet green(atof(argv[10]), atof(argv[11]), atof(argv[12]));
+	CoeffSet blue(atof(argv[13]), atof(argv[14]), atof(argv[15]));
+	float K = atof(argv[16])/NORM; 
+	float Ia = atof(argv[17]); 
+	float Il = atof(argv[18]); 
+	int n = atoi(argv[19]); 
+
+
+
 
 	glutInit(&argc, argv);
 	glutInitDisplayMode(GLUT_SINGLE | GLUT_RGB);
@@ -387,9 +433,8 @@ int main(int argc, char** argv)
 
         vector<double> v;
         double num;
-	fileName = argv[1]; 
         fstream file;
-        file.open(fileName);
+        file.open("inputFile.txt");
 
         if (!file) {
                 cerr << "Unable to open file\n";
@@ -400,11 +445,10 @@ int main(int argc, char** argv)
         file.close();
 	
 	populatePolyhedronInfo(v); 
-
 	calculateNormals(); 
-	
 	setNormals(); 
 
+	
 	//XY
 	windowXY = glutCreateSubWindow(windowID, 25, 50, 320, 320);
 	init();
@@ -416,7 +460,6 @@ int main(int argc, char** argv)
 	//YZ
 	windowYZ = glutCreateSubWindow(windowID, 425, 450, 320, 320); 
 	init();
-	
 
 	
 	glutSetWindow(windowID); 
