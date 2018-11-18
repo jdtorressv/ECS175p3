@@ -76,32 +76,14 @@ float *PolygonBufferXY, *PolygonBufferXZ, *PolygonBufferYZ;
 /*****************************************************************************/
 
 //Constructors
-Vertex::Vertex(double x, double y, double z)
-{
-	this->x = x; 
-	this->y = y;
-	this->z = z; 
-}
+Vertex::Vertex(double x, double y, double z) : x(x), y(y), z(z) {}
 
-Triangle::Triangle(int vertexA, int vertexB, int vertexC)
-{
-	this->vertexA = vertexA;
-	this->vertexB = vertexB; 
-	this->vertexC = vertexC; 
-}
-Normal::Normal(int VID, double xVal, double yVal, double zVal)
-{
-	this->VID = VID;
-	this->xVal = xVal; 
-	this->yVal = yVal;
-	this->zVal = zVal; 
-}
-CoeffSet::CoeffSet(float ka, float kd, float ks)
-{
-	this->ka = ka; 
-	this->kd = kd; 
-	this->ks = ks; 
-}
+Triangle::Triangle(int vertexA, int vertexB, int vertexC) : vertexA(vertexA), vertexB(vertexB), vertexC(vertexC) {}
+
+Normal::Normal(int VID, double xVal, double yVal, double zVal) : VID(VID), xVal(xVal), yVal(yVal), zVal(zVal) {}
+
+CoeffSet::CoeffSet(float ka, float kd, float ks) : ka(ka), kd(kd), ks(ks) {}
+
 //Fill appropriate classes with input file specs
 void populatePolyhedronInfo(vector<double> v)
 {
